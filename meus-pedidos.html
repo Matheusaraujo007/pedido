@@ -32,16 +32,17 @@ async function carregarPedidos() {
     lista.innerHTML = "<p style='text-align:center;color:#666;'>Carregando pedidos...</p>";
 
     try {
-        const res = await fetch("/api/pedidos"); // GET retorna todos os pedidos
+        const res = await fetch("/api/pedidos");
+        if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
         const pedidos = await res.json();
 
-        if (!Array.isArray(pedidos) || pedidos.length === 0) {
+        if (!pedidos || pedidos.length === 0) {
             lista.innerHTML = "<p style='text-align:center;color:#666;'>Nenhum pedido encontrado.</p>";
             return;
         }
 
-        // Ordena do mais recente para o mais antigo
-        pedidos.sort((a, b) => new Date(b.data_pedido) - new Date(a.data_pedido));
+        // Ordena pedidos mais recentes primeiro
+        pedidos.sort((a,b) => new Date(b.data_pedido || b.dataPedido) - new Date(a.data_pedido || a.dataPedido));
 
         lista.innerHTML = "";
         pedidos.forEach(p => {
@@ -57,16 +58,16 @@ async function carregarPedidos() {
 
             // Produtos
             let produtosHTML = "<ul>";
-            if (Array.isArray(p.itens)) {
-                p.itens.forEach(i => {
-                    produtosHTML += `<li>${i.produto} - ${i.quantidade} un. (R$ ${i.valorUnit.toFixed(2)}) - Total: R$ ${i.total.toFixed(2)}</li>`;
-                });
-            }
+            if (p.itens) p.itens.forEach(i => {
+                const valorUnit = parseFloat(i.valorUnit || i.valorunit || 0);
+                const total = parseFloat(i.total || 0);
+                produtosHTML += `<li>${i.produto} - ${i.quantidade} un. (R$ ${valorUnit.toFixed(2)}) - Total: R$ ${total.toFixed(2)}</li>`;
+            });
             produtosHTML += "</ul>";
 
-            // Formata datas
-            const dataPedido = new Date(p.data_pedido).toLocaleDateString("pt-BR");
-            const dataEntrega = new Date(p.data_entrega).toLocaleDateString("pt-BR");
+            // Valores do pedido
+            const valorTotal = parseFloat(p.valor_total || p.valorTotal || 0);
+            const valorRecebido = parseFloat(p.valor_recebido || p.valorRecebido || 0);
 
             card.innerHTML = `
                 <div class="pedido-header">
@@ -74,17 +75,18 @@ async function carregarPedidos() {
                     <span class="status ${statusClasse}">${p.status || "Aguardando Retorno"}</span>
                 </div>
                 <div class="pedido-info">
-                    <p><b>Cliente:</b> ${p.nome_cliente}</p>
-                    <p><b>Telefone:</b> ${p.telefone_cliente}</p>
+                    <p><b>Cliente:</b> ${p.nome_cliente || p.nomeCliente}</p>
+                    <p><b>Telefone:</b> ${p.telefone_cliente || p.telefoneCliente}</p>
                     <p><b>Produtos:</b> ${produtosHTML}</p>
-                    <p><b>Valor Total do Pedido:</b> R$ ${p.valor_total.toFixed(2)}</p>
-                    <p><b>Valor Recebido:</b> R$ ${p.valor_recebido.toFixed(2)}</p>
-                    <p><b>Data Pedido:</b> ${dataPedido}</p>
-                    <p><b>Data Entrega:</b> ${dataEntrega}</p>
+                    <p><b>Valor Total do Pedido:</b> R$ ${valorTotal.toFixed(2)}</p>
+                    <p><b>Valor Recebido:</b> R$ ${valorRecebido.toFixed(2)}</p>
+                    <p><b>Data Pedido:</b> ${p.data_pedido || p.dataPedido}</p>
+                    <p><b>Data Entrega:</b> ${p.data_entrega || p.dataEntrega}</p>
                 </div>
             `;
             lista.appendChild(card);
         });
+
     } catch (err) {
         lista.innerHTML = `<p style='text-align:center;color:red;'>Erro ao carregar pedidos: ${err.message}</p>`;
     }
@@ -92,5 +94,6 @@ async function carregarPedidos() {
 
 carregarPedidos();
 </script>
+
 </body>
 </html>
