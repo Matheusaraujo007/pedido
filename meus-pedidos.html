@@ -27,21 +27,29 @@ h1{text-align:center;color:#2f7fb3;margin-bottom:20px;}
 <a href="index.html" class="voltar">⬅ Voltar</a>
 
 <script>
-async function carregarPedidos() {
+function formatarData(dataStr) {
+    if (!dataStr) return "";
+    const data = new Date(dataStr);
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+    return `${dia}/${mes}/${ano}`;
+}
+
+async function carregarPedidos(){
     const lista = document.getElementById("listaPedidos");
     lista.innerHTML = "<p style='text-align:center;color:#666;'>Carregando pedidos...</p>";
 
     try {
         const res = await fetch("/api/pedidos");
-        if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
         const pedidos = await res.json();
 
-        if (!pedidos || pedidos.length === 0) {
+        if(!pedidos || pedidos.length === 0){
             lista.innerHTML = "<p style='text-align:center;color:#666;'>Nenhum pedido encontrado.</p>";
             return;
         }
 
-        // Ordena pedidos mais recentes primeiro
+        // Ordenar pedidos do mais recente para o mais antigo
         pedidos.sort((a,b) => new Date(b.data_pedido || b.dataPedido) - new Date(a.data_pedido || a.dataPedido));
 
         lista.innerHTML = "";
@@ -49,25 +57,17 @@ async function carregarPedidos() {
             const card = document.createElement("div");
             card.classList.add("pedido-card");
 
-            // Status
             let statusClasse = "pendente";
             const s = (p.status || "").toLowerCase();
-            if (s.includes("aprovada")) statusClasse = "aprovada";
-            else if (s.includes("finalizado")) statusClasse = "finalizado";
-            else if (s.includes("cancelado")) statusClasse = "cancelado";
+            if(s.includes("aprovada")) statusClasse = "aprovada";
+            else if(s.includes("finalizado")) statusClasse = "finalizado";
+            else if(s.includes("cancelado")) statusClasse = "cancelado";
 
-            // Produtos
             let produtosHTML = "<ul>";
-            if (p.itens) p.itens.forEach(i => {
-                const valorUnit = parseFloat(i.valorUnit || i.valorunit || 0);
-                const total = parseFloat(i.total || 0);
-                produtosHTML += `<li>${i.produto} - ${i.quantidade} un. (R$ ${valorUnit.toFixed(2)}) - Total: R$ ${total.toFixed(2)}</li>`;
+            if(p.itens) p.itens.forEach(i => {
+                produtosHTML += `<li>${i.produto} - ${i.quantidade} un. (R$ ${parseFloat(i.valorUnit).toFixed(2)}) - Total: R$ ${parseFloat(i.total).toFixed(2)}</li>`;
             });
             produtosHTML += "</ul>";
-
-            // Valores do pedido
-            const valorTotal = parseFloat(p.valor_total || p.valorTotal || 0);
-            const valorRecebido = parseFloat(p.valor_recebido || p.valorRecebido || 0);
 
             card.innerHTML = `
                 <div class="pedido-header">
@@ -78,22 +78,20 @@ async function carregarPedidos() {
                     <p><b>Cliente:</b> ${p.nome_cliente || p.nomeCliente}</p>
                     <p><b>Telefone:</b> ${p.telefone_cliente || p.telefoneCliente}</p>
                     <p><b>Produtos:</b> ${produtosHTML}</p>
-                    <p><b>Valor Total do Pedido:</b> R$ ${valorTotal.toFixed(2)}</p>
-                    <p><b>Valor Recebido:</b> R$ ${valorRecebido.toFixed(2)}</p>
-                    <p><b>Data Pedido:</b> ${p.data_pedido || p.dataPedido}</p>
-                    <p><b>Data Entrega:</b> ${p.data_entrega || p.dataEntrega}</p>
+                    <p><b>Valor Total do Pedido:</b> R$ ${parseFloat(p.valor_total || p.valorTotal).toFixed(2)}</p>
+                    <p><b>Valor Recebido:</b> R$ ${parseFloat(p.valor_recebido || p.valorRecebido).toFixed(2)}</p>
+                    <p><b>Data Pedido:</b> ${formatarData(p.data_pedido || p.dataPedido)}</p>
+                    <p><b>Data Entrega:</b> ${formatarData(p.data_entrega || p.dataEntrega)}</p>
                 </div>
             `;
             lista.appendChild(card);
         });
-
-    } catch (err) {
+    } catch(err){
         lista.innerHTML = `<p style='text-align:center;color:red;'>Erro ao carregar pedidos: ${err.message}</p>`;
     }
 }
 
 carregarPedidos();
 </script>
-
 </body>
 </html>
