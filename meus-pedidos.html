@@ -9,8 +9,8 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:#f4f7fb;margin:0;padding
 h1{text-align:center;color:#2f7fb3;margin-bottom:20px;}
 .pedido-card{background:white;border-radius:10px;box-shadow:0px 3px 10px rgba(0,0,0,0.1);padding:15px;margin-bottom:15px;transition:0.3s;}
 .pedido-card:hover{transform:translateY(-3px);box-shadow:0px 5px 15px rgba(0,0,0,0.15);}
-.pedido-header{display:flex;justify-content:space-between;align-items:center;font-weight:bold;color:#333;flex-wrap:wrap;cursor:pointer;}
-.pedido-info{margin-top:10px;font-size:14px;color:#555;display:none;}
+.pedido-header{display:flex;justify-content:space-between;align-items:center;font-weight:bold;color:#333;flex-wrap:wrap;}
+.pedido-info{margin-top:10px;font-size:14px;color:#555;}
 .pedido-info ul{padding-left:20px;margin:5px 0;}
 .status{padding:5px 10px;border-radius:6px;font-size:12px;font-weight:bold;}
 .pendente{background:#ffeb99;color:#a67c00;}
@@ -19,8 +19,6 @@ h1{text-align:center;color:#2f7fb3;margin-bottom:20px;}
 .cancelado{background:#f8d7da;color:#721c24;}
 .voltar{display:block;text-align:center;margin-top:20px;background:#2f7fb3;color:white;padding:10px;border-radius:8px;text-decoration:none;font-weight:bold;}
 .voltar:hover{background:#25658d;}
-.show{display:block;}
-.toggle-button{font-size:12px;color:#2f7fb3;text-decoration:underline;cursor:pointer;margin-top:5px;}
 </style>
 </head>
 <body>
@@ -29,83 +27,71 @@ h1{text-align:center;color:#2f7fb3;margin-bottom:20px;}
 <a href="index.html" class="voltar">⬅ Voltar</a>
 
 <script>
-function formatarData(dataStr){
-    if(!dataStr) return "-";
-    const d = new Date(dataStr);
-    return d.toLocaleDateString("pt-BR");
-}
-
-function formatarValor(valor){
-    return parseFloat(valor||0).toFixed(2).replace(".",",");
-}
-
 async function carregarPedidos(){
     const lista = document.getElementById("listaPedidos");
     lista.innerHTML = "<p style='text-align:center;color:#666;'>Carregando pedidos...</p>";
 
-    try{
+    try {
         const res = await fetch("/api/pedidos");
-        const pedidos = await res.json();
+        const data = await res.json();
 
-        if(!pedidos || pedidos.length===0){
+        // Se os pedidos vierem dentro de uma propriedade 'rows' (Neon/Postgres)
+        const pedidos = Array.isArray(data.rows) ? data.rows : data;
+
+        if (!pedidos || pedidos.length === 0) {
             lista.innerHTML = "<p style='text-align:center;color:#666;'>Nenhum pedido encontrado.</p>";
             return;
         }
 
-        // Ordena por data mais recente
-        pedidos.sort((a,b)=>new Date(b.data_pedido) - new Date(a.data_pedido));
+        // Ordenar do mais recente para o mais antigo
+        pedidos.sort((a,b) => new Date(b.data_pedido) - new Date(a.data_pedido));
 
         lista.innerHTML = "";
-        pedidos.forEach(p=>{
+
+        pedidos.forEach(p => {
             const card = document.createElement("div");
             card.classList.add("pedido-card");
 
-            // Status
-            let statusClasse="pendente";
-            const s = (p.status||"").toLowerCase();
-            if(s.includes("aprovada")) statusClasse="aprovada";
-            else if(s.includes("finalizado")) statusClasse="finalizado";
-            else if(s.includes("cancelado")) statusClasse="cancelado";
+            let statusClasse = "pendente";
+            const s = (p.status || "").toLowerCase();
+            if (s.includes("aprovada")) statusClasse = "aprovada";
+            else if (s.includes("finalizado")) statusClasse = "finalizado";
+            else if (s.includes("cancelado")) statusClasse = "cancelado";
 
-            // Produtos
-            let produtosHTML="<ul>";
-            if(p.itens){
-                const itens = Array.isArray(p.itens) ? p.itens : JSON.parse(p.itens);
-                itens.forEach(i=>{
-                    produtosHTML += `<li>${i.produto} - ${i.quantidade} un. (R$ ${formatarValor(i.valorUnit)}) - Total: R$ ${formatarValor(i.total)}</li>`;
-                });
-            }
+            let produtosHTML = "<ul>";
+            if (p.itens) p.itens.forEach(i => {
+                produtosHTML += `<li>${i.produto} - ${i.quantidade} un. (R$ ${parseFloat(i.valorUnit).toFixed(2)}) - Total: R$ ${parseFloat(i.total).toFixed(2)}</li>`;
+            });
             produtosHTML += "</ul>";
 
-            // Preenche o card
-            card.innerHTML=`
+            // Formatar datas no padrão DD/MM/YYYY
+            const formatDate = (d) => {
+                const dateObj = new Date(d);
+                if (isNaN(dateObj)) return d; // Se não for data válida, retorna original
+                return dateObj.toLocaleDateString("pt-BR");
+            }
+
+            card.innerHTML = `
                 <div class="pedido-header">
                     <span>📋 Pedido de ${p.vendedor}</span>
-                    <span class="status ${statusClasse}">${p.status||"Aguardando Retorno"}</span>
+                    <span class="status ${statusClasse}">${p.status || "Aguardando Retorno"}</span>
                 </div>
                 <div class="pedido-info">
                     <p><b>Cliente:</b> ${p.nome_cliente}</p>
                     <p><b>Telefone:</b> ${p.telefone_cliente}</p>
-                    <p><b>Valor Total do Pedido:</b> R$ ${formatarValor(p.valor_total)}</p>
-                    <p><b>Valor Recebido:</b> R$ ${formatarValor(p.valor_recebido)}</p>
-                    <p><b>Data Pedido:</b> ${formatarData(p.data_pedido)}</p>
-                    <p><b>Data Entrega:</b> ${formatarData(p.data_entrega)}</p>
-                    <p class="toggle-button">Mostrar Produtos</p>
-                    <div class="produtos" style="display:none;">${produtosHTML}</div>
+                    <p><b>Produtos:</b> ${produtosHTML}</p>
+                    <p><b>Valor Total do Pedido:</b> R$ ${parseFloat(p.valor_total).toFixed(2)}</p>
+                    <p><b>Valor Recebido:</b> R$ ${parseFloat(p.valor_recebido).toFixed(2)}</p>
+                    <p><b>Data Pedido:</b> ${formatDate(p.data_pedido)}</p>
+                    <p><b>Data Entrega:</b> ${formatDate(p.data_entrega)}</p>
                 </div>
             `;
-            lista.appendChild(card);
 
-            // Toggle produtos
-            const toggleBtn = card.querySelector(".toggle-button");
-            const produtosDiv = card.querySelector(".produtos");
-            toggleBtn.addEventListener("click", ()=>{
-                produtosDiv.style.display = produtosDiv.style.display === "none" ? "block" : "none";
-                toggleBtn.textContent = produtosDiv.style.display === "none" ? "Mostrar Produtos" : "Ocultar Produtos";
-            });
+            lista.appendChild(card);
         });
-    }catch(err){
-        lista.innerHTML=`<p style='text-align:center;color:red;'>Erro ao carregar pedidos: ${err.message}</p>`;
+
+    } catch (err) {
+        lista.innerHTML = `<p style='text-align:center;color:red;'>Erro ao carregar pedidos: ${err.message}</p>`;
     }
 }
 
