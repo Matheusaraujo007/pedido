@@ -3,26 +3,25 @@ import { MongoClient } from "mongodb";
 let client;
 
 export default async function handler(req, res) {
-  if (req.method === "POST") {
-    try {
-      // Conectar ao MongoDB
-      client = client || new MongoClient("mongodb+srv://matheusaraujo85461:zaUHqFlqVHkMHr4W@cluster0.mongodb.net/pedidos?retryWrites=true&w=majority");
-      await client.connect();
+  if (req.method !== "POST") return res.status(405).json({ error: "Método não permitido" });
 
-      const db = client.db("pedidos"); // nome do DB
-      const pedidosCollection = db.collection("pedidos"); // nome da collection
+  try {
+    client = client || new MongoClient(process.env.MONGO_URI);
+    await client.connect();
 
-      const pedido = req.body;
+    const db = client.db("pedidos");
+    const pedidosCollection = db.collection("pedidos");
 
-      // Inserir no MongoDB
-      await pedidosCollection.insertOne(pedido);
-
-      res.status(200).json({ message: "✅ Pedido salvo com sucesso!" });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: error.message });
+    const pedido = req.body;
+    if (!pedido.vendedor || !pedido.nomeCliente) {
+      return res.status(400).json({ error: "Dados incompletos" });
     }
-  } else {
-    res.status(405).json({ error: "Método não permitido" });
+
+    await pedidosCollection.insertOne(pedido);
+
+    res.status(200).json({ message: "✅ Pedido salvo com sucesso!" });
+  } catch (error) {
+    console.error("Erro API:", error);
+    res.status(500).json({ error: error.message });
   }
 }
