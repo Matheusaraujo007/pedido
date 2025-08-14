@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb";
 
 const client = new MongoClient(process.env.MONGO_URI);
-const dbName = "pedidos"; // nome do banco
+const dbName = "pedidos"; // nome do banco de dados no Atlas
 
 export default async function handler(req, res) {
   try {
@@ -11,16 +11,25 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       const pedido = req.body;
+      if (!pedido || !pedido.vendedor) {
+        return res.status(400).json({ error: "Dados do pedido inválidos." });
+      }
+
       const result = await collection.insertOne(pedido);
-      res.status(200).json({ message: "Pedido cadastrado", id: result.insertedId });
-    } else if (req.method === "GET") {
-      const pedidos = await collection.find({}).sort({ dataPedido: -1 }).toArray();
-      res.status(200).json(pedidos);
-    } else {
-      res.status(405).json({ error: "Método não permitido" });
+      return res.status(200).json({ message: "Pedido cadastrado com sucesso!", id: result.insertedId });
     }
+
+    if (req.method === "GET") {
+      const pedidos = await collection.find({}).sort({ dataPedido: -1 }).toArray();
+      return res.status(200).json(pedidos);
+    }
+
+    res.setHeader("Allow", ["GET", "POST"]);
+    return res.status(405).end(`Método ${req.method} não permitido.`);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
+  } finally {
+    await client.close();
   }
 }
