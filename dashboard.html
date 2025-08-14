@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 Dashboard de Pedidos</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        padding: 20px;
+    }
+    h1 {
+        text-align: center;
+        color: #333;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        margin-top: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        text-align: center;
+        vertical-align: middle;
+    }
+    th {
+        background: #2f7fb3;
+        color: white;
+    }
+    select, button, input[type="number"] {
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+    }
+    input[type="number"] {
+        text-align: right;
+        width: 80px;
+    }
+    button {
+        background: green;
+        color: white;
+        cursor: pointer;
+    }
+    button:hover {
+        background: darkgreen;
+    }
+    ul {
+        padding-left: 15px;
+        margin: 5px 0;
+        text-align: left;
+    }
+    .saldo {
+        font-weight: bold;
+        color: #dc3545;
+        display: block;
+        margin-top: 5px;
+    }
+</style>
+</head>
+<body>
+
+<h1>📊 Dashboard de Pedidos</h1>
+
+<table id="tabelaPedidos">
+    <thead>
+        <tr>
+            <th>Cliente</th>
+            <th>Produtos</th>
+            <th>Quantidade</th>
+            <th>Valor Unitário (R$)</th>
+            <th>Valor Total (R$)</th>
+            <th>Valor Recebido (R$)</th>
+            <th>Saldo Restante (R$)</th>
+            <th>Data Pedido</th>
+            <th>Data Entrega</th>
+            <th>Status</th>
+            <th>Ação</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Pedidos aparecem aqui -->
+    </tbody>
+</table>
+
+<script>
+    let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
+
+    function carregarPedidos() {
+        const tbody = document.querySelector("#tabelaPedidos tbody");
+        tbody.innerHTML = "";
+
+        pedidos.forEach((pedido, index) => {
+            let tr = document.createElement("tr");
+
+            // Produtos, quantidades e valores
+            let produtosHTML = "<ul>";
+            let quantidadesHTML = "<ul>";
+            let valoresUnitHTML = "<ul>";
+            let valorTotalPedido = 0;
+
+            if (Array.isArray(pedido.itens)) {
+                pedido.itens.forEach(item => {
+                    produtosHTML += `<li>${item.produto}</li>`;
+                    quantidadesHTML += `<li>${item.quantidade}</li>`;
+                    valoresUnitHTML += `<li>R$ ${item.valorUnit.toFixed(2)}</li>`;
+                    valorTotalPedido += (item.valorUnit || 0) * (item.quantidade || 0);
+                });
+            }
+            produtosHTML += "</ul>";
+            quantidadesHTML += "</ul>";
+            valoresUnitHTML += "</ul>";
+
+            // Atualiza valorTotal caso não esteja definido
+            if (!pedido.valorTotal) pedido.valorTotal = valorTotalPedido;
+            const saldoRestante = (pedido.valorTotal - (pedido.valorRecebido || 0)).toFixed(2);
+
+            tr.innerHTML = `
+                <td>${pedido.nomeCliente}</td>
+                <td>${produtosHTML}</td>
+                <td>${quantidadesHTML}</td>
+                <td>${valoresUnitHTML}</td>
+                <td>R$ ${pedido.valorTotal.toFixed(2)}</td>
+                <td>
+                    <input type="number" step="0.01" value="${pedido.valorRecebido || 0}" 
+                           onchange="atualizarValorRecebido(${index}, parseFloat(this.value))">
+                </td>
+                <td class="saldo" id="saldo-${index}">R$ ${saldoRestante}</td>
+                <td>${pedido.dataPedido}</td>
+                <td>${pedido.dataEntrega}</td>
+                <td>
+                    <select onchange="atualizarStatus(${index}, this.value)">
+                        <option value="Aguardando Retorno" ${pedido.status === "Aguardando Retorno" ? "selected" : ""}>Aguardando Retorno</option>
+                        <option value="Arte Aprovada" ${pedido.status === "Arte Aprovada" ? "selected" : ""}>Arte Aprovada</option>
+                        <option value="Produzindo" ${pedido.status === "Produzindo" ? "selected" : ""}>Produzindo</option>
+                        <option value="Pedido Finalizado" ${pedido.status === "Pedido Finalizado" ? "selected" : ""}>Pedido Finalizado</option>
+                        <option value="Cancelado" ${pedido.status === "Cancelado" ? "selected" : ""}>Cancelado</option>
+                    </select>
+                </td>
+                <td><button onclick="removerPedido(${index})">🗑️ Remover</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function atualizarStatus(index, novoStatus) {
+        pedidos[index].status = novoStatus;
+        localStorage.setItem("pedidos", JSON.stringify(pedidos));
+        alert("Status atualizado para: " + novoStatus);
+    }
+
+    function atualizarValorRecebido(index, valor) {
+        pedidos[index].valorRecebido = valor || 0;
+        localStorage.setItem("pedidos", JSON.stringify(pedidos));
+        // Atualiza saldo restante
+        const saldoRestante = (pedidos[index].valorTotal - pedidos[index].valorRecebido).toFixed(2);
+        document.getElementById(`saldo-${index}`).textContent = `R$ ${saldoRestante}`;
+        alert(`Valor recebido atualizado para: R$ ${valor.toFixed(2)}`);
+    }
+
+    function removerPedido(index) {
+        if (confirm("Deseja realmente remover este pedido?")) {
+            pedidos.splice(index, 1);
+            localStorage.setItem("pedidos", JSON.stringify(pedidos));
+            carregarPedidos();
+        }
+    }
+
+    // Inicializa status padrão se não existir
+    pedidos.forEach(p => { if (!p.status) p.status = "Aguardando Retorno"; });
+    localStorage.setItem("pedidos", JSON.stringify(pedidos));
+
+    carregarPedidos();
+</script>
+
+</body>
+</html>
