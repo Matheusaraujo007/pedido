@@ -112,8 +112,15 @@ const entrega = new Date();
 entrega.setDate(hoje.getDate() + 10);
 const dataPedidoEl = document.getElementById("dataPedido");
 const dataEntregaEl = document.getElementById("dataEntrega");
-dataPedidoEl.value = hoje.toLocaleDateString("pt-BR");
-dataEntregaEl.value = entrega.toISOString().split("T")[0];
+
+// Função para converter data para formato ISO (YYYY-MM-DD)
+function formatDateISO(date){
+    return date.toISOString().split('T')[0];
+}
+
+// Preencher os campos com datas no formato ISO
+dataPedidoEl.value = formatDateISO(hoje);
+dataEntregaEl.value = formatDateISO(entrega);
 
 function atualizarValorTotal(){
     let total = 0;
@@ -158,7 +165,7 @@ document.addEventListener("input", e=>{
     if(e.target.closest("#itensContainer")) atualizarValorTotal();
 });
 
-// Envio via API MongoDB
+// Envio via API Neon (PostgreSQL)
 document.getElementById("pedidoForm").addEventListener("submit", async function(e){
     e.preventDefault();
     const itens=[];
@@ -173,10 +180,10 @@ document.getElementById("pedidoForm").addEventListener("submit", async function(
         nomeCliente: document.getElementById("nomeCliente").value,
         telefoneCliente: document.getElementById("telefoneCliente").value,
         itens,
-        dataPedido:dataPedidoEl.value,
-        dataEntrega:dataEntregaEl.value,
-        valorTotal:itens.reduce((acc,i)=>acc+i.total,0),
-        valorRecebido:parseFloat(document.getElementById("valorRecebido").value)||0,
+        dataPedido: formatDateISO(hoje),
+        dataEntrega: formatDateISO(entrega),
+        valorTotal: itens.reduce((acc,i)=>acc+i.total,0),
+        valorRecebido: parseFloat(document.getElementById("valorRecebido").value)||0,
         status:"Aguardando Retorno"
     };
 
@@ -190,8 +197,8 @@ document.getElementById("pedidoForm").addEventListener("submit", async function(
         if(res.ok){
             alert("✅ Pedido cadastrado com sucesso!");
             this.reset();
-            dataPedidoEl.value = hoje.toLocaleDateString("pt-BR");
-            dataEntregaEl.value = entrega.toISOString().split("T")[0];
+            dataPedidoEl.value = formatDateISO(hoje);
+            dataEntregaEl.value = formatDateISO(entrega);
             document.getElementById("itensContainer").innerHTML="";
             document.getElementById("itensContainer").appendChild(criarItem());
             atualizarValorTotal();
