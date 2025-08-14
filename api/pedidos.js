@@ -8,11 +8,11 @@ const pool = new Pool({
 });
 
 export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const pedido = req.body;
+  try {
+    const client = await pool.connect();
 
-    try {
-      const client = await pool.connect();
+    if (req.method === 'POST') {
+      const pedido = req.body;
 
       const query = `
         INSERT INTO pedidos (
@@ -38,12 +38,23 @@ export default async function handler(req, res) {
       const result = await client.query(query, values);
       client.release();
 
-      res.status(200).json({ message: 'Pedido cadastrado!', pedido: result.rows[0] });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Erro ao cadastrar pedido: ' + err.message });
+      return res.status(200).json({ message: 'Pedido cadastrado!', pedido: result.rows[0] });
+
+    } else if (req.method === 'GET') {
+      // Busca todos os pedidos e ordena por data de pedido descrescente
+      const result = await client.query('SELECT * FROM pedidos ORDER BY data_pedido DESC');
+      client.release();
+
+      return res.status(200).json(result.rows);
+
+    } else {
+      client.release();
+      res.setHeader('Allow', ['GET', 'POST']);
+      return res.status(405).json({ error: `Método ${req.method} não permitido` });
     }
-  } else {
-    res.status(405).json({ error: 'Método não permitido' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro na API: ' + err.message });
   }
 }
