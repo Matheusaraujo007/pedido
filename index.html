@@ -238,10 +238,10 @@ document.getElementById("pedidoForm").addEventListener("submit", async function(
     // Envio via fetch para API MongoDB
     try {
         const response = await fetch("/api/pedidos", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(pedido)
-        });
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(pedido)
+});
         const data = await response.json();
         if (response.ok) {
             alert("✅ Pedido cadastrado no MongoDB!");
