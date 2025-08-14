@@ -5,162 +5,74 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📦 Meus Pedidos</title>
 <style>
-    body {
-        font-family: "Segoe UI", Arial, sans-serif;
-        background: #f4f7fb;
-        margin: 0;
-        padding: 20px;
-    }
-    h1 {
-        text-align: center;
-        color: #2f7fb3;
-        margin-bottom: 20px;
-    }
-    .pedido-card {
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0px 3px 10px rgba(0,0,0,0.1);
-        padding: 15px;
-        margin-bottom: 15px;
-        transition: 0.3s;
-    }
-    .pedido-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0px 5px 15px rgba(0,0,0,0.15);
-    }
-    .pedido-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: bold;
-        color: #333;
-        flex-wrap: wrap;
-    }
-    .pedido-info {
-        margin-top: 10px;
-        font-size: 14px;
-        color: #555;
-    }
-    .pedido-info ul {
-        padding-left: 20px;
-        margin: 5px 0;
-    }
-    .status {
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-    .pendente { background: #ffeb99; color: #a67c00; }
-    .aprovada { background: #cce5ff; color: #004085; }
-    .finalizado { background: #d4edda; color: #155724; }
-    .cancelado { background: #f8d7da; color: #721c24; }
-    .voltar {
-        display: block;
-        text-align: center;
-        margin-top: 20px;
-        background: #2f7fb3;
-        color: white;
-        padding: 10px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: bold;
-    }
-    .voltar:hover {
-        background: #25658d;
-    }
+body{font-family:"Segoe UI",Arial,sans-serif;background:#f4f7fb;margin:0;padding:20px;}
+h1{text-align:center;color:#2f7fb3;margin-bottom:20px;}
+.pedido-card{background:white;border-radius:10px;box-shadow:0px 3px 10px rgba(0,0,0,0.1);padding:15px;margin-bottom:15px;transition:0.3s;}
+.pedido-card:hover{transform:translateY(-3px);box-shadow:0px 5px 15px rgba(0,0,0,0.15);}
+.pedido-header{display:flex;justify-content:space-between;align-items:center;font-weight:bold;color:#333;flex-wrap:wrap;}
+.pedido-info{margin-top:10px;font-size:14px;color:#555;}
+.pedido-info ul{padding-left:20px;margin:5px 0;}
+.status{padding:5px 10px;border-radius:6px;font-size:12px;font-weight:bold;}
+.pendente{background:#ffeb99;color:#a67c00;}
+.aprovada{background:#cce5ff;color:#004085;}
+.finalizado{background:#d4edda;color:#155724;}
+.cancelado{background:#f8d7da;color:#721c24;}
+.voltar{display:block;text-align:center;margin-top:20px;background:#2f7fb3;color:white;padding:10px;border-radius:8px;text-decoration:none;font-weight:bold;}
+.voltar:hover{background:#25658d;}
 </style>
 </head>
 <body>
-
 <h1>📦 Meus Pedidos</h1>
 <div id="listaPedidos"></div>
 <a href="index.html" class="voltar">⬅ Voltar</a>
 
-<!-- Supabase SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.33.2/dist/supabase.min.js"></script>
 <script>
-// Inicialização do Supabase
-const supabaseUrl = "https://jeddjulucawhwxtocnqy.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplZGRqdWx1Y2F3aHd4dG9jbnF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwOTA4MDIsImV4cCI6MjA3MDY2NjgwMn0.AmHHBMpM4Fy0D021wdgWAEEn50rlYqVJa491qJ7mBbc";
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-const lista = document.getElementById("listaPedidos");
-
-// Formata data para DD/MM/AAAA
-function formatarDataBR(dataISO) {
-    if (!dataISO) return "";
-    const [ano, mes, dia] = dataISO.split("-");
-    return `${dia}/${mes}/${ano}`;
-}
-
-// Função para carregar pedidos
-async function carregarPedidos() {
-    lista.innerHTML = "<p style='text-align:center;color:#666;'>Carregando pedidos...</p>";
-
-    // Buscar pedidos do Supabase
-    const { data: pedidos, error } = await supabase
-        .from("pedidos")
-        .select("*")
-        .order('data_pedido', { ascending: false });
-
-    if (error) {
-        lista.innerHTML = `<p style='text-align:center;color:red;'>Erro ao carregar pedidos: ${error.message}</p>`;
-        return;
-    }
-
-    if (!pedidos || pedidos.length === 0) {
-        lista.innerHTML = "<p style='text-align:center;color:#666;'>Nenhum pedido encontrado.</p>";
-        return;
-    }
-
-    lista.innerHTML = "";
-
-    pedidos.forEach(pedido => {
-        const card = document.createElement("div");
-        card.classList.add("pedido-card");
-
-        // Classe do status
-        let statusClasse = "pendente";
-        const statusLower = (pedido.status || "").toLowerCase();
-        if (statusLower.includes("arte") || statusLower.includes("aprovada")) statusClasse = "aprovada";
-        else if (statusLower.includes("finalizado")) statusClasse = "finalizado";
-        else if (statusLower.includes("cancelado")) statusClasse = "cancelado";
-
-        // Itens do pedido (deserializando JSON)
-        let produtosHTML = "<ul>";
-        if (pedido.itens) {
-            let itensArray = [];
-            try { itensArray = JSON.parse(pedido.itens); } catch(e) { itensArray = []; }
-            itensArray.forEach(item => {
-                produtosHTML += `<li>${item.produto} - ${item.quantidade} un. (R$ ${item.valorUnit.toFixed(2)}) - Total: R$ ${item.total.toFixed(2)}</li>`;
-            });
+async function carregarPedidos(){
+    const lista=document.getElementById("listaPedidos");
+    lista.innerHTML="<p style='text-align:center;color:#666;'>Carregando pedidos...</p>";
+    try{
+        const res=await fetch("/api/pedidos");
+        const pedidos=await res.json();
+        if(!pedidos||pedidos.length===0){
+            lista.innerHTML="<p style='text-align:center;color:#666;'>Nenhum pedido encontrado.</p>";
+            return;
         }
-        produtosHTML += "</ul>";
-
-        const valorRecebido = pedido.valor_recebido || 0;
-
-        card.innerHTML = `
-            <div class="pedido-header">
-                <span>📋 Pedido de ${pedido.vendedor}</span>
-                <span class="status ${statusClasse}">${pedido.status || "Aguardando Retorno"}</span>
-            </div>
-            <div class="pedido-info">
-                <p><b>Cliente:</b> ${pedido.nome_cliente}</p>
-                <p><b>Telefone:</b> ${pedido.telefone_cliente}</p>
-                <p><b>Produtos:</b> ${produtosHTML}</p>
-                <p><b>Valor Total do Pedido:</b> R$ ${pedido.valor_total.toFixed(2)}</p>
-                <p><b>Valor Recebido:</b> R$ ${valorRecebido.toFixed(2)}</p>
-                <p><b>Data Pedido:</b> ${formatarDataBR(pedido.data_pedido)}</p>
-                <p><b>Data Entrega:</b> ${formatarDataBR(pedido.data_entrega)}</p>
-            </div>
-        `;
-        lista.appendChild(card);
-    });
+        lista.innerHTML="";
+        pedidos.forEach(p=>{
+            const card=document.createElement("div");
+            card.classList.add("pedido-card");
+            let statusClasse="pendente";
+            const s=(p.status||"").toLowerCase();
+            if(s.includes("aprovada")) statusClasse="aprovada";
+            else if(s.includes("finalizado")) statusClasse="finalizado";
+            else if(s.includes("cancelado")) statusClasse="cancelado";
+            let produtosHTML="<ul>";
+            if(p.itens) p.itens.forEach(i=>{
+                produtosHTML+=`<li>${i.produto} - ${i.quantidade} un. (R$ ${i.valorUnit.toFixed(2)}) - Total: R$ ${i.total.toFixed(2)}</li>`;
+            });
+            produtosHTML+="</ul>";
+            card.innerHTML=`
+                <div class="pedido-header">
+                    <span>📋 Pedido de ${p.vendedor}</span>
+                    <span class="status ${statusClasse}">${p.status||"Aguardando Retorno"}</span>
+                </div>
+                <div class="pedido-info">
+                    <p><b>Cliente:</b> ${p.nomeCliente}</p>
+                    <p><b>Telefone:</b> ${p.telefoneCliente}</p>
+                    <p><b>Produtos:</b> ${produtosHTML}</p>
+                    <p><b>Valor Total do Pedido:</b> R$ ${p.valorTotal.toFixed(2)}</p>
+                    <p><b>Valor Recebido:</b> R$ ${p.valorRecebido.toFixed(2)}</p>
+                    <p><b>Data Pedido:</b> ${p.dataPedido}</p>
+                    <p><b>Data Entrega:</b> ${p.dataEntrega}</p>
+                </div>
+            `;
+            lista.appendChild(card);
+        });
+    }catch(err){
+        lista.innerHTML=`<p style='text-align:center;color:red;'>Erro ao carregar pedidos: ${err.message}</p>`;
+    }
 }
-
 carregarPedidos();
 </script>
-
 </body>
 </html>
