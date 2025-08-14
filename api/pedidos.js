@@ -5,6 +5,7 @@ const client = new MongoClient(process.env.MONGO_URI);
 export default async function handler(req, res) {
     if (req.method === "POST") {
         try {
+            if (!client.isConnected?.()) await client.connect();
             const db = client.db("pedidos");
             const collection = db.collection("pedidos");
             const result = await collection.insertOne(req.body);
