@@ -1,38 +1,49 @@
-import { Client } from "pg";
+// api/pedidos.js
+import pkg from 'pg';
+const { Pool } = pkg;
 
-const client = new Client({
+const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
 
 export default async function handler(req, res) {
-  await client.connect();
+  if (req.method === 'POST') {
+    const pedido = req.body;
 
-  if (req.method === "POST") {
     try {
-      const { vendedor, nomeCliente, telefoneCliente, itens, dataPedido, dataEntrega, valorTotal, valorRecebido, status } = req.body;
+      const client = await pool.connect();
 
       const query = `
-        INSERT INTO pedidos (vendedor, nome_cliente, telefone_cliente, itens, data_pedido, data_entrega, valor_total, valor_recebido, status)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        INSERT INTO pedidos (
+          vendedor, nome_cliente, telefone_cliente,
+          itens, data_pedido, data_entrega,
+          valor_total, valor_recebido, status
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
         RETURNING *;
       `;
-      const values = [vendedor, nomeCliente, telefoneCliente, JSON.stringify(itens), dataPedido, dataEntrega, valorTotal, valorRecebido, status];
+
+      const values = [
+        pedido.vendedor,
+        pedido.nomeCliente,
+        pedido.telefoneCliente,
+        JSON.stringify(pedido.itens),
+        pedido.dataPedido,
+        pedido.dataEntrega,
+        pedido.valorTotal,
+        pedido.valorRecebido,
+        pedido.status
+      ];
 
       const result = await client.query(query, values);
-      res.status(200).json(result.rows[0]);
-    } catch (error) {
-      res.status(500).json({ error: "Erro ao cadastrar pedido: " + error.message });
-    }
-  }
+      client.release();
 
-  if (req.method === "GET") {
-    try {
-      const result = await client.query("SELECT * FROM pedidos ORDER BY data_pedido DESC;");
-      res.status(200).json(result.rows);
-    } catch (error) {
-      res.status(500).json({ error: "Erro ao buscar pedidos: " + error.message });
+      res.status(200).json({ message: 'Pedido cadastrado!', pedido: result.rows[0] });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Erro ao cadastrar pedido: ' + err.message });
     }
+  } else {
+    res.status(405).json({ error: 'Método não permitido' });
   }
-
-  await client.end();
 }
