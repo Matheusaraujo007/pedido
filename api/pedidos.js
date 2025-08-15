@@ -16,9 +16,9 @@ export default async function handler(req, res) {
       res.status(200).json(result.rows);
 
     } else if (req.method === 'POST') {
-      const { vendedor, nomeCliente, itens, valorTotal, valorRecebido, dataPedido, dataEntrega, status } = req.body;
+      const { nomeCliente, itens, valorTotal, valorRecebido, dataPedido, dataEntrega, status } = req.body;
       await client.query(
-        `INSERT INTO pedidos (vendedor, nome_cliente, itens, valor_total, valor_recebido, data_pedido, data_entrega, status)
+        `INSERT INTO pedidos (nome_cliente, itens, valor_total, valor_recebido, data_pedido, data_entrega, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [nomeCliente, JSON.stringify(itens), valorTotal, valorRecebido || 0, dataPedido, dataEntrega, status || 'Aguardando Retorno']
       );
