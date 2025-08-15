@@ -198,6 +198,8 @@ document.getElementById("pedidoForm").addEventListener("submit", async function(
         const data = await res.json();
         if(res.ok){
             alert("✅ Pedido cadastrado com sucesso!");
+            // Redirecionar para meus pedidos
+            window.location.href = "meus-pedidos.html";
             this.reset();
             dataPedidoEl.value = formatDateISO(hoje);
             dataEntregaEl.value = formatDateISO(entrega);
