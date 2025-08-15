@@ -80,9 +80,9 @@ async function carregarPedidos() {
         const saldoRestante = (Number(pedido.valor_total) - Number(pedido.valor_recebido || 0)).toFixed(2);
 
         tr.innerHTML = `
-            <td>${pedido.vendedor }</td>
+            <td>${pedido.vendedor || ""}</td>
             <td>${pedido.nome_cliente || ""}</td>
-            <td>${pedido.telefone_cliente}</td>
+            <td>${pedido.telefone_cliente || ""}</td>
             <td>${produtosHTML}</td>
             <td>${quantidadesHTML}</td>
             <td>${valoresUnitHTML}</td>
