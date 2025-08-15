@@ -3,95 +3,157 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📦 Meus Pedidos</title>
+<title>📊 Dashboard de Pedidos</title>
 <style>
-body{font-family:"Segoe UI",Arial,sans-serif;background:#f4f7fb;margin:0;padding:20px;}
-h1{text-align:center;color:#2f7fb3;margin-bottom:20px;}
-.pedido-card{background:white;border-radius:10px;box-shadow:0px 3px 10px rgba(0,0,0,0.1);padding:15px;margin-bottom:15px;transition:0.3s;}
-.pedido-card:hover{transform:translateY(-3px);box-shadow:0px 5px 15px rgba(0,0,0,0.15);}
-.pedido-header{display:flex;justify-content:space-between;align-items:center;font-weight:bold;color:#333;flex-wrap:wrap;}
-.pedido-info{margin-top:10px;font-size:14px;color:#555;}
-.pedido-info ul{padding-left:20px;margin:5px 0;}
-.status{padding:5px 10px;border-radius:6px;font-size:12px;font-weight:bold;}
-.pendente{background:#ffeb99;color:#a67c00;}
-.aprovada{background:#cce5ff;color:#004085;}
-.finalizado{background:#d4edda;color:#155724;}
-.cancelado{background:#f8d7da;color:#721c24;}
-.voltar{display:block;text-align:center;margin-top:20px;background:#2f7fb3;color:white;padding:10px;border-radius:8px;text-decoration:none;font-weight:bold;}
-.voltar:hover{background:#25658d;}
+body { font-family: Arial, sans-serif; background-color: #ffffff; padding: 20px; position: relative; }
+h1 { text-align: center; color: #333; margin-top: 40px; }
+table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; vertical-align: middle; }
+th { background: #2f7fb3; color: white; }
+select, button, input[type="number"] { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+input[type="number"] { text-align: right; width: 80px; }
+button { background: green; color: white; cursor: pointer; }
+button:hover { background: darkgreen; }
+ul { padding-left: 15px; margin: 5px 0; text-align: left; }
+.saldo { font-weight: bold; color: #dc3545; display: block; margin-top: 5px; }
+/* Assinatura fixa no canto superior esquerdo */
+.assinatura { position: absolute; top: 10px; left: 10px; font-size: 12px; color: #555; }
 </style>
 </head>
 <body>
-<h1>📦 Meus Pedidos</h1>
-<div id="listaPedidos"></div>
-<a href="index.html" class="voltar">⬅ Voltar</a>
+
+<!-- Assinatura no canto superior esquerdo -->
+<div class="assinatura">Desenvolvido por <strong>MTScomputadores</strong></div>
+
+<h1>📊 Dashboard de Pedidos</h1>
+
+<table id="tabelaPedidos">
+    <thead>
+        <tr>
+            <th>Cliente</th>
+            <th>Produtos</th>
+            <th>Quantidade</th>
+            <th>Valor Unitário (R$)</th>
+            <th>Valor Total (R$)</th>
+            <th>Valor Recebido (R$)</th>
+            <th>Saldo Restante (R$)</th>
+            <th>Data Pedido</th>
+            <th>Data Entrega</th>
+            <th>Status</th>
+            <th>Ação</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
 
 <script>
 function formatarData(dataStr) {
     if (!dataStr) return "";
     const data = new Date(dataStr);
-    const dia = String(data.getDate()).padStart(2, '0');
-    const mes = String(data.getMonth() + 1).padStart(2, '0');
-    const ano = data.getFullYear();
-    return `${dia}/${mes}/${ano}`;
+    return `${String(data.getDate()).padStart(2,'0')}/${String(data.getMonth()+1).padStart(2,'0')}/${data.getFullYear()}`;
 }
 
-async function carregarPedidos(){
-    const lista = document.getElementById("listaPedidos");
-    lista.innerHTML = "<p style='text-align:center;color:#666;'>Carregando pedidos...</p>";
-
+async function carregarPedidos() {
+    const tbody = document.querySelector("#tabelaPedidos tbody");
+    tbody.innerHTML = "<tr><td colspan='11'>Carregando pedidos...</td></tr>";
     try {
         const res = await fetch("/api/pedidos");
+        if (!res.ok) throw new Error("Erro ao buscar pedidos");
         const pedidos = await res.json();
 
-        if(!pedidos || pedidos.length === 0){
-            lista.innerHTML = "<p style='text-align:center;color:#666;'>Nenhum pedido encontrado.</p>";
+        if (!pedidos.length) {
+            tbody.innerHTML = "<tr><td colspan='11'>Nenhum pedido encontrado.</td></tr>";
             return;
         }
 
-        // Ordenar pedidos do mais recente para o mais antigo
-        pedidos.sort((a,b) => new Date(b.data_pedido || b.dataPedido) - new Date(a.data_pedido || a.dataPedido));
+        tbody.innerHTML = "";
 
-        lista.innerHTML = "";
-        pedidos.forEach(p => {
-            const card = document.createElement("div");
-            card.classList.add("pedido-card");
-
-            let statusClasse = "pendente";
-            const s = (p.status || "").toLowerCase();
-            if(s.includes("aprovada")) statusClasse = "aprovada";
-            else if(s.includes("finalizado")) statusClasse = "finalizado";
-            else if(s.includes("cancelado")) statusClasse = "cancelado";
-
-            let produtosHTML = "<ul>";
-            if(p.itens) p.itens.forEach(i => {
-                produtosHTML += `<li>${i.produto} - ${i.quantidade} un. (R$ ${parseFloat(i.valorUnit).toFixed(2)}) - Total: R$ ${parseFloat(i.total).toFixed(2)}</li>`;
+        pedidos.forEach(pedido => {
+            let produtosHTML="<ul>", quantHTML="<ul>", valUnitHTML="<ul>";
+            let total = 0;
+            (pedido.itens || []).forEach(item => {
+                produtosHTML += `<li>${item.produto}</li>`;
+                quantHTML += `<li>${item.quantidade}</li>`;
+                valUnitHTML += `<li>R$ ${parseFloat(item.valorUnit).toFixed(2)}</li>`;
+                total += parseFloat(item.valorUnit || 0) * parseInt(item.quantidade || 0);
             });
-            produtosHTML += "</ul>";
+            produtosHTML+="</ul>"; quantHTML+="</ul>"; valUnitHTML+="</ul>";
+            if (!pedido.valor_total) pedido.valor_total = total;
+            const saldo = (pedido.valor_total - (pedido.valor_recebido || 0)).toFixed(2);
 
-            card.innerHTML = `
-                <div class="pedido-header">
-                    <span>📋 Pedido de ${p.vendedor}</span>
-                    <span class="status ${statusClasse}">${p.status || "Aguardando Retorno"}</span>
-                </div>
-                <div class="pedido-info">
-                    <p><b>Cliente:</b> ${p.nome_cliente || p.nomeCliente}</p>
-                    <p><b>Telefone:</b> ${p.telefone_cliente || p.telefoneCliente}</p>
-                    <p><b>Produtos:</b> ${produtosHTML}</p>
-                    <p><b>Valor Total do Pedido:</b> R$ ${parseFloat(p.valor_total || p.valorTotal).toFixed(2)}</p>
-                    <p><b>Valor Recebido:</b> R$ ${parseFloat(p.valor_recebido || p.valorRecebido).toFixed(2)}</p>
-                    <p><b>Data Pedido:</b> ${formatarData(p.data_pedido || p.dataPedido)}</p>
-                    <p><b>Data Entrega:</b> ${formatarData(p.data_entrega || p.dataEntrega)}</p>
-                </div>
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${pedido.nome_cliente}</td>
+                <td>${produtosHTML}</td>
+                <td>${quantHTML}</td>
+                <td>${valUnitHTML}</td>
+                <td>R$ ${parseFloat(pedido.valor_total).toFixed(2)}</td>
+                <td><input type="number" step="0.01" value="${pedido.valor_recebido || 0}" onchange="atualizarValor('${pedido.id}', this.value)"></td>
+                <td class="saldo" id="saldo-${pedido.id}">R$ ${saldo}</td>
+                <td>${formatarData(pedido.data_pedido)}</td>
+                <td>${formatarData(pedido.data_entrega)}</td>
+                <td>
+                    <select onchange="atualizarStatus('${pedido.id}', this.value)">
+                        <option value="Aguardando Retorno" ${pedido.status==='Aguardando Retorno'?'selected':''}>Aguardando Retorno</option>
+                        <option value="Arte Aprovada" ${pedido.status==='Arte Aprovada'?'selected':''}>Arte Aprovada</option>
+                        <option value="Produzindo" ${pedido.status==='Produzindo'?'selected':''}>Produzindo</option>
+                        <option value="Pedido Finalizado" ${pedido.status==='Pedido Finalizado'?'selected':''}>Pedido Finalizado</option>
+                        <option value="Cancelado" ${pedido.status==='Cancelado'?'selected':''}>Cancelado</option>
+                    </select>
+                </td>
+                <td><button onclick="remover('${pedido.id}')">🗑️ Remover</button></td>
             `;
-            lista.appendChild(card);
+            tbody.appendChild(tr);
         });
-    } catch(err){
-        lista.innerHTML = `<p style='text-align:center;color:red;'>Erro ao carregar pedidos: ${err.message}</p>`;
+
+    } catch(err) {
+        tbody.innerHTML = `<tr><td colspan='11' style="color:red">${err.message}</td></tr>`;
     }
+}
+
+async function atualizarStatus(id, status) {
+    try {
+        const res = await fetch(`/api/pedidos`, {
+            method:'PUT',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ id, status })
+        });
+        if (!res.ok) throw new Error("Erro ao atualizar status");
+        const data = await res.json();
+        document.getElementById(`saldo-${id}`).textContent = `R$ ${(data.pedido.valor_total - data.pedido.valor_recebido).toFixed(2)}`;
+    } catch(err) { alert(err.message); }
+}
+
+async function atualizarValor(id, valor) {
+    valor = parseFloat(valor) || 0;
+    try {
+        const res = await fetch(`/api/pedidos`, {
+            method:'PUT',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ id, valorRecebido: valor })
+        });
+        if (!res.ok) throw new Error("Erro ao atualizar valor");
+        const data = await res.json();
+        document.getElementById(`saldo-${id}`).textContent = `R$ ${(data.pedido.valor_total - data.pedido.valor_recebido).toFixed(2)}`;
+    } catch(err) { alert(err.message); }
+}
+
+async function remover(id) {
+    if (!confirm("Deseja realmente remover este pedido?")) return;
+    try {
+        const res = await fetch(`/api/pedidos`, {
+            method:'DELETE',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ id })
+        });
+        if (!res.ok) throw new Error("Erro ao remover pedido");
+        await res.json();
+        carregarPedidos();
+    } catch(err) { alert(err.message); }
 }
 
 carregarPedidos();
 </script>
+
 </body>
 </html>
