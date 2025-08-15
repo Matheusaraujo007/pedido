@@ -25,6 +25,7 @@
 <table id="tabelaPedidos">
     <thead>
         <tr>
+            <th>Vendedor</th>
             <th>Cliente</th>
             <th>Produtos</th>
             <th>Quantidade</th>
@@ -74,6 +75,7 @@
             const saldoRestante = (Number(pedido.valor_total) - Number(pedido.valor_recebido || 0)).toFixed(2);
 
             tr.innerHTML = `
+                <td>${pedido.Vendedor}</td>
                 <td>${pedido.nome_cliente}</td>
                 <td>${produtosHTML}</td>
                 <td>${quantidadesHTML}</td>
