@@ -19,9 +19,22 @@ h1{text-align:center;color:#2f7fb3;margin-bottom:20px;}
 .cancelado{background:#f8d7da;color:#721c24;}
 .voltar{display:block;text-align:center;margin-top:20px;background:#2f7fb3;color:white;padding:10px;border-radius:8px;text-decoration:none;font-weight:bold;}
 .voltar:hover{background:#25658d;}
+/* Texto no canto superior esquerdo */
+.dev-credit{
+    position: fixed;
+    top: 5px;
+    left: 10px;
+    font-size: 11px;
+    color: #555;
+    font-style: italic;
+    z-index: 1000;
+}
 </style>
 </head>
 <body>
+
+<div class="dev-credit">Desenvolvido por <strong>MTScomputadores</strong></div>
+
 <h1>📦 Meus Pedidos</h1>
 <div id="listaPedidos"></div>
 <a href="index.html" class="voltar">⬅ Voltar</a>
@@ -49,7 +62,6 @@ async function carregarPedidos(){
             return;
         }
 
-        // Ordenar pedidos do mais recente para o mais antigo
         pedidos.sort((a,b) => new Date(b.data_pedido || b.dataPedido) - new Date(a.data_pedido || a.dataPedido));
 
         lista.innerHTML = "";
