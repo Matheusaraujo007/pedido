@@ -40,28 +40,17 @@ export default async function handler(req, res) {
       res.status(201).json({ message: 'Pedido criado com sucesso!' });
 
     } else if (req.method === 'PUT') {
-  const { id, valorRecebido, status, vendedor, telefoneCliente } = req.body;
+      // Atualiza valor recebido, status, vendedor e telefone_cliente
+      const { id, valorRecebido, status, vendedor, telefoneCliente } = req.body;
 
-  // Busca os valores atuais no banco
-  const result = await client.query('SELECT vendedor, telefone_cliente FROM pedidos WHERE id = $1', [id]);
-  if (result.rows.length === 0) {
-    return res.status(404).json({ error: 'Pedido não encontrado' });
-  }
+      await client.query(
+        `UPDATE pedidos 
+         SET valor_recebido = $1, status = $2, vendedor = $3, telefone_cliente = $4
+         WHERE id = $5`,
+        [valorRecebido, status, vendedor, telefoneCliente, id]
+      );
 
-  const pedidoAtual = result.rows[0];
-
-  // Mantém o valor atual caso não tenha sido enviado pelo front-end
-  const vendedorAtualizado = vendedor || pedidoAtual.vendedor;
-  const telefoneAtualizado = telefoneCliente || pedidoAtual.telefone_cliente;
-
-  await client.query(
-    `UPDATE pedidos 
-     SET valor_recebido = $1, status = $2, vendedor = $3, telefone_cliente = $4
-     WHERE id = $5`,
-    [valorRecebido, status, vendedorAtualizado, telefoneAtualizado, id]
-  );
-
-  res.status(200).json({ message: 'Pedido atualizado com sucesso!' });
+      res.status(200).json({ message: 'Pedido atualizado com sucesso!' });
 
     } else if (req.method === 'DELETE') {
       // Remove pedido
