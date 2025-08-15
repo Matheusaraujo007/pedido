@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
       await client.query(
         `INSERT INTO pedidos 
-          (vendedor, nome_cliente, telefone_cliente, itens, valor_total, valor_recebido, data_pedido, data_entrega, status)
+          (vendedor, nome_cliente, telefone_cliente, vendedor, itens, valor_total, valor_recebido, data_pedido, data_entrega, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
           vendedor,
