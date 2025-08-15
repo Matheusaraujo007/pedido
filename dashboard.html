@@ -89,13 +89,13 @@ async function carregarPedidos() {
             <td>R$ ${Number(pedido.valor_total).toFixed(2)}</td>
             <td>
                 <input type="number" step="0.01" value="${pedido.valor_recebido || 0}" 
-                       onchange="atualizarValorRecebido(${pedido.id}, parseFloat(this.value), '${pedido.status}')">
+                       onchange="atualizarValorRecebido(${pedido.id}, parseFloat(this.value), '${pedido.status}', '${pedido.vendedor}', '${pedido.telefone_cliente}')">
             </td>
             <td class="saldo" id="saldo-${pedido.id}">R$ ${saldoRestante}</td>
             <td>${pedido.data_pedido ? new Date(pedido.data_pedido).toLocaleDateString() : ""}</td>
             <td>${pedido.data_entrega ? new Date(pedido.data_entrega).toLocaleDateString() : ""}</td>
             <td>
-                <select onchange="atualizarStatus(${pedido.id}, this.value, ${pedido.valor_recebido || 0})">
+                <select onchange="atualizarStatus(${pedido.id}, this.value, ${pedido.valor_recebido || 0}, '${pedido.vendedor}', '${pedido.telefone_cliente}')">
                     <option value="Aguardando Retorno" ${pedido.status === "Aguardando Retorno" ? "selected" : ""}>Aguardando Retorno</option>
                     <option value="Arte Aprovada" ${pedido.status === "Arte Aprovada" ? "selected" : ""}>Arte Aprovada</option>
                     <option value="Produzindo" ${pedido.status === "Produzindo" ? "selected" : ""}>Produzindo</option>
@@ -109,21 +109,21 @@ async function carregarPedidos() {
     });
 }
 
-async function atualizarStatus(id, novoStatus, valorRecebido) {
+async function atualizarStatus(id, novoStatus, valorRecebido, vendedor, telefone) {
     await fetch("/api/pedidos", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: novoStatus, valorRecebido })
+        body: JSON.stringify({ id, status: novoStatus, valorRecebido, vendedor, telefoneCliente: telefone })
     });
     alert("Status atualizado para: " + novoStatus);
     carregarPedidos();
 }
 
-async function atualizarValorRecebido(id, valorRecebido, status) {
+async function atualizarValorRecebido(id, valorRecebido, status, vendedor, telefone) {
     await fetch("/api/pedidos", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, valorRecebido, status })
+        body: JSON.stringify({ id, valorRecebido, status, vendedor, telefoneCliente: telefone })
     });
     alert(`Valor recebido atualizado para: R$ ${valorRecebido.toFixed(2)}`);
     carregarPedidos();
