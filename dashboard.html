@@ -10,8 +10,9 @@
     table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
     th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; vertical-align: middle; }
     th { background: #2f7fb3; color: white; }
-    select, button, input[type="number"] { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+    select, button, input[type="number"], input[type="text"] { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
     input[type="number"] { text-align: right; width: 80px; }
+    input[type="text"] { width: 250px; margin-bottom: 15px; }
     button { background: green; color: white; cursor: pointer; }
     button:hover { background: darkgreen; }
     ul { padding-left: 15px; margin: 5px 0; text-align: left; }
@@ -27,8 +28,9 @@
 
     /* Botões de filtro */
     .filtros { text-align: center; margin: 20px 0; }
-    .filtros button { margin: 5px; padding: 8px 12px; font-size: 14px; cursor: pointer; border: none; border-radius: 5px; }
+    .filtros button { margin: 5px; padding: 8px 12px; font-size: 14px; cursor: pointer; border: none; border-radius: 5px; background: #2f7fb3; color: white; }
     .filtros button:hover { opacity: 0.8; }
+    .filtros button.ativo { background: #155d82; }
 </style>
 </head>
 <body>
@@ -43,9 +45,14 @@
 
 <h1>📊 Dashboard de Pedidos</h1>
 
+<!-- Busca -->
+<div style="text-align:center;">
+  <input type="text" id="busca" placeholder="🔍 Buscar por cliente, produto ou telefone..." onkeyup="aplicarFiltros()">
+</div>
+
 <!-- Botões de filtro -->
 <div class="filtros">
-  <button onclick="filtrarProdutos('Todos')">Todos</button>
+  <button onclick="filtrarProdutos('Todos')" class="ativo">Todos</button>
   <button onclick="filtrarProdutos('Acrílico')">Acrílico</button>
   <button onclick="filtrarProdutos('Placa')">Placa</button>
   <button onclick="filtrarProdutos('Luminoso')">Luminoso</button>
@@ -81,15 +88,24 @@
 </table>
 
 <script>
-let todosPedidos = []; // para poder filtrar depois
+let todosPedidos = [];
+let filtroProduto = "Todos"; // filtro atual
 
 async function carregarPedidos() {
-    const tbody = document.querySelector("#tabelaPedidos tbody");
-    tbody.innerHTML = "";
-
     const res = await fetch("/api/pedidos");
-    todosPedidos = await res.json(); // salvar todos os pedidos
-    renderizarTabela(todosPedidos);
+    todosPedidos = await res.json();
+
+    ordenarPedidos();
+    aplicarFiltros();
+}
+
+function ordenarPedidos() {
+    // coloca "Pedido Finalizado" no fim
+    todosPedidos.sort((a, b) => {
+        if (a.status === "Pedido Finalizado" && b.status !== "Pedido Finalizado") return 1;
+        if (a.status !== "Pedido Finalizado" && b.status === "Pedido Finalizado") return -1;
+        return 0;
+    });
 }
 
 function renderizarTabela(pedidos) {
@@ -157,15 +173,35 @@ function renderizarTabela(pedidos) {
     });
 }
 
-function filtrarProdutos(produto) {
-    if (produto === "Todos") {
-        renderizarTabela(todosPedidos);
-    } else {
-        const filtrados = todosPedidos.filter(pedido => 
-            pedido.itens.some(item => item.produto.toLowerCase().includes(produto.toLowerCase()))
+function aplicarFiltros() {
+    const termo = document.getElementById("busca").value.toLowerCase();
+
+    let filtrados = todosPedidos.filter(pedido => {
+        let texto = `${pedido.nome_cliente} ${pedido.telefone_cliente} ${pedido.vendedor}`;
+        if (Array.isArray(pedido.itens)) {
+            texto += pedido.itens.map(i => i.produto).join(" ");
+        }
+        return texto.toLowerCase().includes(termo);
+    });
+
+    if (filtroProduto !== "Todos") {
+        filtrados = filtrados.filter(p => 
+            p.itens.some(item => item.produto.toLowerCase().includes(filtroProduto.toLowerCase()))
         );
-        renderizarTabela(filtrados);
     }
+
+    renderizarTabela(filtrados);
+}
+
+function filtrarProdutos(produto) {
+    filtroProduto = produto;
+
+    document.querySelectorAll(".filtros button").forEach(btn => btn.classList.remove("ativo"));
+    const btnAtivo = Array.from(document.querySelectorAll(".filtros button"))
+        .find(b => b.textContent === produto);
+    if (btnAtivo) btnAtivo.classList.add("ativo");
+
+    aplicarFiltros();
 }
 
 async function atualizarStatus(id, novoStatus, valorRecebido, vendedor, telefone) {
