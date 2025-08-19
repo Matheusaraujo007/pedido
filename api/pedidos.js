@@ -40,15 +40,27 @@ export default async function handler(req, res) {
       res.status(201).json({ message: 'Pedido criado com sucesso!' });
 
     } else if (req.method === 'PUT') {
-      // Atualiza valor recebido, status, vendedor e telefone_cliente
-      const { id, valorRecebido, status, vendedor, telefoneCliente } = req.body;
+      // Atualiza pedido (pode ser valor recebido, status, vendedor, telefone_cliente OU itens)
+      const { id, valorRecebido, status, vendedor, telefoneCliente, itens, valor_total } = req.body;
 
-      await client.query(
-        `UPDATE pedidos 
-         SET valor_recebido = $1, status = $2, vendedor = $3, telefone_cliente = $4
-         WHERE id = $5`,
-        [valorRecebido, status, vendedor, telefoneCliente, id]
-      );
+      if (itens) {
+        // Atualiza os itens e valor_total se fornecido
+        await client.query(
+          `UPDATE pedidos 
+           SET itens = $1,
+               valor_total = $2
+           WHERE id = $3`,
+          [JSON.stringify(itens), valor_total, id]
+        );
+      } else {
+        // Atualiza dados básicos
+        await client.query(
+          `UPDATE pedidos 
+           SET valor_recebido = $1, status = $2, vendedor = $3, telefone_cliente = $4
+           WHERE id = $5`,
+          [valorRecebido, status, vendedor, telefoneCliente, id]
+        );
+      }
 
       res.status(200).json({ message: 'Pedido atualizado com sucesso!' });
 
