@@ -62,19 +62,20 @@ h1 {
 .finalizado { background: #d4edda; color: #155724; }
 .cancelado  { background: #f8d7da; color: #721c24; }
 
-.voltar {
-    display: block;
-    text-align: center;
-    margin-top: 20px;
+.voltar-topo {
+    position: fixed;
+    top: 60px;
+    left: 20px;
     background: #2f7fb3;
     color: white;
-    padding: 12px;
+    padding: 8px 15px;
     border-radius: 8px;
     text-decoration: none;
     font-weight: bold;
     transition: background 0.3s;
+    z-index: 1100;
 }
-.voltar:hover {
+.voltar-topo:hover {
     background: #25658d;
 }
 /* Texto no canto superior esquerdo */
@@ -100,11 +101,17 @@ h1 {
 
 <div class="dev-credit">Desenvolvido por <strong>MTScomputadores</strong></div>
 
+<!-- Botão Voltar no canto superior esquerdo -->
+<a href="index.html" class="voltar-topo">⬅ Voltar</a>
+
 <h1>📦 Meus Pedidos</h1>
 <div id="listaPedidos"></div>
-<a href="index.html" class="voltar">⬅ Voltar</a>
 
 <script>
+    // Verifica se o usuário está logado
+  if(sessionStorage.getItem('isLoggedIn') !== 'true'){
+      window.location.href = 'login.html'; // redireciona para login
+  }
 function formatarData(dataStr) {
     if (!dataStr) return "-";
     const data = new Date(dataStr);
@@ -149,6 +156,9 @@ if (p.itens) p.itens.forEach(i => {
 });
 produtosHTML += "</ul>";
 
+    // Adicione anotacoes abaixo de produtos
+let anotacoesHTML = p.anotacoes ? `<p><b>Anotações:</b> ${p.anotacoes}</p>` : '';
+
             card.innerHTML = `
                 <div class="pedido-header">
                     <span>📋 Pedido de ${p.vendedor}</span>
@@ -158,6 +168,7 @@ produtosHTML += "</ul>";
                     <p><b>Cliente:</b> ${p.nome_cliente || p.nomeCliente}</p>
                     <p><b>Telefone:</b> ${p.telefone_cliente || p.telefoneCliente}</p>
                     <p><b>Produtos:</b> ${produtosHTML}</p>
+                    ${anotacoesHTML}
                     <p><b>Valor Total:</b> ${formatarMoeda(parseFloat(p.valor_total || p.valorTotal))}</p>
                     <p><b>Valor Recebido:</b> ${formatarMoeda(parseFloat(p.valor_recebido || p.valorRecebido))}</p>
                     <p><b>Data Pedido:</b> ${formatarData(p.data_pedido || p.dataPedido)}</p>

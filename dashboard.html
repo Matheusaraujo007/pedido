@@ -22,7 +22,9 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
 .status-azul { background: #cce5ff; color: #004085; font-weight: bold; }
 .status-cinza { background: #e2e3e5; color: #383d41; font-weight: bold; }
 .status-lilas { background: #e2d6f3; color: #4a148c; font-weight: bold; }
+.status-amareloclaro { background: #d4edda; color: #faed01; font-weight: bold; }
 .status-verde { background: #d4edda; color: #155724; font-weight: bold; }
+.status-verdeneon { background: #d4edda; color: #01fd90; font-weight: bold; }
 .status-vermelho { background: #f8d7da; color: #721c24; font-weight: bold; }
 .filtros { text-align: center; margin: 20px 0; }
 .filtros button { margin: 5px; padding: 8px 12px; font-size: 14px; cursor: pointer; border: none; border-radius: 5px; background: #2f7fb3; color: white; }
@@ -38,11 +40,6 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
 </style>
 </head>
 <body>
-
-<div class="assinatura">
-  Desenvolvido por 
-  <a href="https://instagram.com/mts_computadores" target="_blank" style="text-decoration:none; color:#2f7fb3; font-weight:bold;">MTScomputadores</a>
-</div>
 
 <h1>📊 Dashboard de Pedidos</h1>
 
@@ -73,7 +70,9 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
   <button onclick="filtrarStatus('Arte não iniciada')">Arte não iniciada</button>
   <button onclick="filtrarStatus('Arte Aprovada')">Arte Aprovada</button>
   <button onclick="filtrarStatus('Produzindo')">Produzindo</button>
-  <button onclick="filtrarStatus('Pedido Finalizado')">Pedido Finalizado</button>
+  <button onclick="filtrarStatus('Pedido Finalizado/Falta Pagamento')">Pedido Finalizado/Falta Pagamento</button>
+  <button onclick="filtrarStatus('Pronto Para Envio')">Pronto Para Envio</button>
+  <button onclick="filtrarStatus('Venda Concluida e Finalizada')">Venda Concluida e Finalizada</button>
   <button onclick="filtrarStatus('Cancelado')">Cancelado</button>
 </div>
 
@@ -92,6 +91,7 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
             <th>Data Pedido</th>
             <th>Data Entrega</th>
             <th>Status</th>
+            <th>Anotações</th>
             <th>Ação</th>
         </tr>
     </thead>
@@ -102,6 +102,8 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
   <div>
     <h3>Editar Pedido</h3>
     <div id="produtosContainer"></div>
+    <label for="anotacoes">Anotações:</label>
+<textarea id="anotacoes" rows="3" style="width:100%; padding:5px;"></textarea>
     <button onclick="adicionarLinhaProduto()">➕ Adicionar Produto</button>
     <div class="totalPedido" id="totalPedido">Total: R$ 0.00</div>
     <button onclick="salvarEdicao()">💾 Salvar</button>
@@ -110,6 +112,10 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
 </div>
 
 <script>
+        // Verifica se o usuário está logado
+  if(sessionStorage.getItem('isLoggedIn') !== 'true'){
+      window.location.href = 'login.html'; // redireciona para login
+  }
 window.todosPedidos = [];
 window.filtroProduto = "Todos";
 window.filtroStatus = "Todos";
@@ -124,8 +130,8 @@ window.carregarPedidos = async function() {
 
 function ordenarPedidos() {
     window.todosPedidos.sort((a, b) => {
-        if(a.status==="Pedido Finalizado" && b.status!=="Pedido Finalizado") return 1;
-        if(a.status!=="Pedido Finalizado" && b.status==="Pedido Finalizado") return -1;
+        if(a.status==="Venda Concluida e Finalizada" && b.status!=="Venda Concluida e Finalizada") return 1;
+        if(a.status!=="Venda Concluida e Finalizada" && b.status==="Venda Concluida e Finalizada") return -1;
         return 0;
     });
 }
@@ -150,7 +156,9 @@ function renderizarTabela(pedidos) {
         if(pedido.status==="Arte Aprovada") statusClass="status-azul";
         if(pedido.status==="Arte não iniciada") statusClass="status-cinza";
         if(pedido.status==="Produzindo") statusClass="status-lilas";
-        if(pedido.status==="Pedido Finalizado") statusClass="status-verde";
+        if(pedido.status==="Pedido Finalizado/Falta Pagamento") statusClass="status-amareloclaro";
+        if(pedido.status==="Pronto Para Envio") statusClass="status-verdeneon";
+        if(pedido.status==="Venda Concluida e Finalizada") statusClass="status-verdeneon";
         if(pedido.status==="Cancelado") statusClass="status-vermelho";
 
         tr.innerHTML=`
@@ -170,9 +178,12 @@ function renderizarTabela(pedidos) {
                 <option value="Arte Aprovada" ${pedido.status==="Arte Aprovada"?"selected":""}>Arte Aprovada</option>
                 <option value="Arte não iniciada" ${pedido.status==="Arte não iniciada"?"selected":""}>Arte não iniciada</option>
                 <option value="Produzindo" ${pedido.status==="Produzindo"?"selected":""}>Produzindo</option>
-                <option value="Pedido Finalizado" ${pedido.status==="Pedido Finalizado"?"selected":""}>Pedido Finalizado</option>
+                <option value="Pedido Finalizado/Falta Pagamento" ${pedido.status==="Pedido Finalizado/Falta Pagamento"?"selected":""}>Pedido Finalizado/Falta Pagamento</option>
+                <option value="Pronto Para Envio" ${pedido.status==="Pronto Para Envio"?"selected":""}>Pronto Para Envio</option>
+                <option value="Venda Concluida e Finalizada" ${pedido.status==="Venda Concluida e Finalizada"?"selected":""}>Venda Concluida e Finalizada</option>
                 <option value="Cancelado" ${pedido.status==="Cancelado"?"selected":""}>Cancelado</option>
             </select></td>
+            <td>${pedido.anotacoes || ""}</td>
             <td>
                 <button onclick="editarPedido(${pedido.id})">✏️ Editar</button>
                 <button onclick="removerPedido(${pedido.id})">🗑️ Remover</button>
@@ -243,6 +254,7 @@ window.editarPedido = function(id){
     modal.style.display = "flex";
 
     const container = document.getElementById("produtosContainer");
+    document.getElementById("anotacoes").value = window.pedidoAtualEditar.anotacoes || "";
     container.innerHTML = "";
     window.pedidoAtualEditar.itens.forEach((item,index)=>{criarLinhaProduto(item.produto,item.quantidade,item.valorUnit,index)});
     atualizarTotalModal();
@@ -282,22 +294,24 @@ window.salvarEdicao = async function(){
     const container = document.getElementById("produtosContainer");
     const novosItens = Array.from(container.children).map(div=>({
         produto: div.querySelector("input[type=text]").value,
-        quantidade: Number(div.querySelector("input[type=number]:nth-child(2)").value),
-        valorUnit: Number(div.querySelector("input[type=number]:nth-child(3)").value)
+        quantidade: Number(div.querySelectorAll("input[type=number]")[0].value),
+        valorUnit: Number(div.querySelectorAll("input[type=number]")[1].value)
     }));
-    const id = window.pedidoAtualEditar.id;
 
-    await fetch("/api/pedidos",{
-        method:"PUT",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({id,itens:novosItens})
+    const id = window.pedidoAtualEditar.id;
+    const anotacoes = document.getElementById("anotacoes").value;
+
+    await fetch("/api/pedidos", {
+        method: "PUT",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ id, itens: novosItens, anotacoes })
     });
 
     const pedido = window.todosPedidos.find(p=>p.id===id);
     if(pedido){
         pedido.itens = novosItens;
-        let valorTotalPedido = novosItens.reduce((acc,item)=>acc + item.quantidade * item.valorUnit, 0);
-        pedido.valor_total = valorTotalPedido;
+        pedido.valor_total = novosItens.reduce((acc,item)=>acc + item.quantidade * item.valorUnit, 0);
+        pedido.anotacoes = anotacoes; // <-- ATUALIZA LOCALMENTE
     }
 
     fecharModal();
@@ -308,6 +322,11 @@ window.fecharModal=function(){document.getElementById("modalEditar").style.displ
 
 // Inicializa
 carregarPedidos();
+
+function sair() {
+    sessionStorage.removeItem('isLoggedIn'); // limpa o login
+    window.location.href = "login.html"; // redireciona para login
+}
 </script>
 
 </body>
