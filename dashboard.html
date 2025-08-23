@@ -22,9 +22,9 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
 .status-azul { background: #cce5ff; color: #004085; font-weight: bold; }
 .status-cinza { background: #e2e3e5; color: #383d41; font-weight: bold; }
 .status-lilas { background: #e2d6f3; color: #4a148c; font-weight: bold; }
-.status-amareloclaro { background: #d4edda; color: #faed01; font-weight: bold; }
-.status-verde { background: #d4edda; color: #155724; font-weight: bold; }
-.status-verdeneon { background: #d4edda; color: #01fd90; font-weight: bold; }
+.status-amareloclaro { background: #d4edda; color: #d8d261; font-weight: bold; }
+.status-verde { background: #171b18; color: #00f7ff; font-weight: bold; }
+.status-verdeneon { background: #262f28; color: #5cc799; font-weight: bold; }
 .status-vermelho { background: #f8d7da; color: #721c24; font-weight: bold; }
 .filtros { text-align: center; margin: 20px 0; }
 .filtros button { margin: 5px; padding: 8px 12px; font-size: 14px; cursor: pointer; border: none; border-radius: 5px; background: #2f7fb3; color: white; }
@@ -121,7 +121,20 @@ window.pedidoAtualEditar = null;
 
 window.carregarPedidos = async function() {
     const res = await fetch("/api/pedidos");
-    window.todosPedidos = await res.json();
+    const novos = await res.json();
+
+    // 🔹 preserva as anotações antigas no frontend
+    novos.forEach(novo => {
+        const antigo = window.todosPedidos.find(p => p.id === novo.id);
+        if (antigo) {
+            // se já tinha anotação antes, mantém
+            if (antigo.anotacoes && (!novo.anotacoes || novo.anotacoes === "")) {
+                novo.anotacoes = antigo.anotacoes;
+            }
+        }
+    });
+
+    window.todosPedidos = novos;
     ordenarPedidos();
     aplicarFiltros();
 }
