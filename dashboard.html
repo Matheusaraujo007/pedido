@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -19,6 +20,7 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
 .saldo { font-weight: bold; color: #dc3545; display: block; margin-top: 5px; }
 .assinatura { position: absolute; top: 10px; left: 10px; font-size: 12px; color: #555; }
 .status-amarelo { background: #fff3cd; color: #856404; font-weight: bold; }
+.status-Laranja { background: #544128; color: #fcad02; font-weight: bold; }
 .status-azul { background: #cce5ff; color: #004085; font-weight: bold; }
 .status-cinza { background: #e2e3e5; color: #383d41; font-weight: bold; }
 .status-lilas { background: #e2d6f3; color: #4a148c; font-weight: bold; }
@@ -38,6 +40,20 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
 .linhaItem { display:flex; gap:5px; align-items:center; }
 .linhaItem input { flex:1; padding:5px; }
 .totalPedido { font-weight:bold; text-align:right; margin-top:5px; }
+.btn-receber {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.btn-receber:hover {
+  background: #218838;
+}
 </style>
 </head>
 <body>
@@ -84,6 +100,7 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
 <h3>Filtrar por Status</h3>
 <button onclick="filtrarStatus('Todos')" class="ativo">Todos</button>
 <button onclick="filtrarStatus('Aguardando Retorno')">Aguardando Retorno</button>
+<button onclick="filtrarStatus('Aguardando Alteração')">Aguardando Alteração</button>
 <button onclick="filtrarStatus('Arte não iniciada')">Arte não iniciada</button>
 <button onclick="filtrarStatus('Arte Aprovada')">Arte Aprovada</button>
 <button onclick="filtrarStatus('Produzindo')">Produzindo</button>
@@ -91,22 +108,6 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
 <button onclick="filtrarStatus('Pronto Para Envio')">Pronto Para Envio</button>
 <button onclick="filtrarStatus('Venda Concluida e Finalizada')">Venda Concluida e Finalizada</button>
 <button onclick="filtrarStatus('Cancelado')">Cancelado</button>
-</div>
-
-<!-- 🔹 Impressão por Status -->
-<div id="impressaoStatusContainer" style="text-align:center; margin:20px 0;">
-  <select id="statusSelect">
-    <option value="">-- Selecione um Status --</option>
-    <option value="Aguardando Retorno">Aguardando Retorno</option>
-    <option value="Arte não iniciada">Arte não iniciada</option>
-    <option value="Arte Aprovada">Arte Aprovada</option>
-    <option value="Produzindo">Produzindo</option>
-    <option value="Pedido Finalizado/Falta Pagamento">Pedido Finalizado/Falta Pagamento</option>
-    <option value="Pronto Para Envio">Pronto Para Envio</option>
-    <option value="Venda Concluida e Finalizada">Venda Concluida e Finalizada</option>
-    <option value="Cancelado">Cancelado</option>
-  </select>
-  <button onclick="imprimirStatus()">🖨️ Imprimir</button>
 </div>
 
 <table id="tabelaPedidos">
@@ -143,7 +144,6 @@ ul { padding-left: 15px; margin: 5px 0; text-align: left; }
 <button onclick="fecharModal()">❌ Fechar</button>
 </div>
 </div>
-
 <script>
 // Verifica se o usuário está logado
 if(sessionStorage.getItem('isLoggedIn') !== 'true'){
@@ -244,6 +244,7 @@ function renderizarTabela(pedidos) {
         const saldoRestante=(Number(pedido.valor_total)-Number(pedido.valor_recebido||0)).toFixed(2);
         let statusClass="";
         if(pedido.status==="Aguardando Retorno") statusClass="status-amarelo";
+        if(pedido.status==="Aguardando Alteração") statusClass="status-Laranja";
         if(pedido.status==="Arte Aprovada") statusClass="status-azul";
         if(pedido.status==="Arte não iniciada") statusClass="status-cinza";
         if(pedido.status==="Produzindo") statusClass="status-lilas";
@@ -266,6 +267,7 @@ function renderizarTabela(pedidos) {
             <td>
                 <select class="${statusClass}" onchange="atualizarStatus(${pedido.id},this.value,${pedido.valor_recebido||0},'${pedido.vendedor}','${pedido.telefone_cliente}')">
                     <option value="Aguardando Retorno" ${pedido.status==="Aguardando Retorno"?"selected":""}>Aguardando Retorno</option>
+                    <option value="Aguardando Alteração" ${pedido.status==="Aguardando Alteração"?"selected":""}>Aguardando Alteração</option>
                     <option value="Arte Aprovada" ${pedido.status==="Arte Aprovada"?"selected":""}>Arte Aprovada</option>
                     <option value="Arte não iniciada" ${pedido.status==="Arte não iniciada"?"selected":""}>Arte não iniciada</option>
                     <option value="Produzindo" ${pedido.status==="Produzindo"?"selected":""}>Produzindo</option>
@@ -279,6 +281,7 @@ function renderizarTabela(pedidos) {
             <td>
                 <button onclick="editarPedido(${pedido.id})">✏️ Editar</button>
                 <button onclick="removerPedido(${pedido.id})">🗑️ Remover</button>
+                <button class="btn-receber" onclick="abrirRecebimento('${pedido.id}')">💳 Receber</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -394,6 +397,28 @@ window.salvarEdicao = async function(){
     carregarPedidos();
 }
 
+
+let pedidoSelecionado = null;
+
+async function abrirRecebimento(idPedido) {
+  try {
+    const res = await fetch(`/api/pedidos/${idPedido}`);
+    const pedido = await res.json();
+
+    if (!res.ok) {
+      alert("❌ Erro ao carregar pedido");
+      return;
+    }
+
+    pedidoSelecionado = pedido;
+
+    // Abre a tela de recebimento
+    window.location.href = `recebimento.html?id=${pedido.id}`;
+  } catch (err) {
+    alert("❌ Erro de conexão: " + err.message);
+  }
+}
+
 window.fecharModal=function(){document.getElementById("modalEditar").style.display="none";}
 
 // Inicializa
@@ -456,58 +481,6 @@ let pedidosFiltrados = window.todosPedidos.filter(p =>
   janela.print();
 }
 
-// 🔹 Impressão filtrada por status
-function imprimirStatus() {
-  let statusEscolhido = document.getElementById("statusSelect").value;
-  if (!statusEscolhido) {
-    alert("Selecione um status para imprimir!");
-    return;
-  }
-
-  let pedidosFiltrados = window.todosPedidos.filter(p => p.status === statusEscolhido);
-
-  if (pedidosFiltrados.length === 0) {
-    alert("Nenhum pedido encontrado para este status.");
-    return;
-  }
-
-  let conteudo = "<h2>Pedidos - Status: " + statusEscolhido + "</h2>";
-  conteudo += "<table border='1' cellspacing='0' cellpadding='5' style='width:100%; border-collapse: collapse;'>";
-  conteudo += "<tr><th>Cliente</th><th>Telefone</th><th>Produtos</th><th>Qtd Total</th><th>Vlr Total</th><th>Data Pedido</th><th>Data Entrega</th></tr>";
-
-  pedidosFiltrados.forEach(p => {
-    let produtos = "";
-    let qtdTotal = 0;
-    let valorTotal = 0;
-
-    if (p.itens) {
-      p.itens.forEach(item => {
-        produtos += `${item.produto} (${item.quantidade})<br>`;
-        qtdTotal += Number(item.quantidade);
-        valorTotal += item.quantidade * item.valorUnit;
-      });
-    }
-
-    conteudo += "<tr>" +
-      "<td>" + (p.nome_cliente || "") + "</td>" +
-      "<td>" + (p.telefone_cliente || "") + "</td>" +
-      "<td>" + produtos + "</td>" +
-      "<td>" + qtdTotal + "</td>" +
-      "<td>R$ " + valorTotal.toFixed(2) + "</td>" +
-      "<td>" + (p.data_pedido ? formatarData(p.data_pedido) : "") + "</td>" +
-      "<td>" + (p.data_entrega ? formatarData(p.data_entrega) : "") + "</td>" +
-    "</tr>";
-  });
-
-  conteudo += "</table>";
-
-  let janela = window.open("", "", "width=900,height=650");
-  janela.document.write("<html><head><title>Pedidos - Status: " + statusEscolhido + "</title>");
-  janela.document.write("<style> body{font-family:Arial} table{margin-top:10px;} th,td{padding:6px; text-align:center;} th{background:#f0f0f0;} </style>");
-  janela.document.write("</head><body>" + conteudo + "</body></html>");
-  janela.document.close();
-  janela.print();
-}
 </script>
 </body>
 </html>
